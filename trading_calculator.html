@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='84'>%F0%9F%92%B0</text></svg>">
+    <title>Trading Position Size Calculator</title>
+    <style>
+        :root {
+            --bg-color: #eef1f6;
+            --bg-color-2: #e4e9f2;
+            --card-bg: #ffffff;
+            --text-color: #10182b;
+            --text-muted: #66708a;
+            --border-color: #dfe4ee;
+            --input-bg: #f7f9fc;
+            --input-border: #d6dceb;
+            --accent-1: #3b6bff;
+            --accent-2: #7c5cff;
+            --gold-1: #d4a017;
+            --gold-2: #f4c430;
+            --result-bg: #f2f6ff;
+            --result-border: #d9e2ff;
+            --result-text: #10182b;
+            --error-color: #dc2626;
+            --error-bg: #fef2f2;
+            --long-color: #15803d;
+            --long-bg: #e8f7ee;
+            --short-color: #b91c1c;
+            --short-bg: #fdedec;
+            --shadow: 0 20px 40px -20px rgba(30, 45, 90, 0.25);
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #090c13;
+            --bg-color-2: #0d1220;
+            --card-bg: #121826;
+            --text-color: #eef1f8;
+            --text-muted: #808aa3;
+            --border-color: #232b40;
+            --input-bg: #0c111d;
+            --input-border: #2a3350;
+            --accent-1: #5b82ff;
+            --accent-2: #9a7bff;
+            --gold-1: #e6b422;
+            --gold-2: #ffd76a;
+            --result-bg: #0e1626;
+            --result-border: #263258;
+            --result-text: #f3f6ff;
+            --error-color: #f87171;
+            --error-bg: #2a1414;
+            --long-color: #4ade80;
+            --long-bg: #10281a;
+            --short-color: #f87171;
+            --short-bg: #2a1414;
+            --shadow: 0 20px 45px -20px rgba(0, 0, 0, 0.6);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        html, body {
+            height: 100%;
+        }
+
+        body {
+            background:
+                radial-gradient(circle at 15% 10%, color-mix(in srgb, var(--accent-1) 10%, transparent), transparent 45%),
+                radial-gradient(circle at 85% 90%, color-mix(in srgb, var(--accent-2) 10%, transparent), transparent 45%),
+                linear-gradient(160deg, var(--bg-color), var(--bg-color-2));
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            transition: background-color 0.35s ease, color 0.35s ease;
+        }
+
+        .calculator-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 18px;
+            padding: 26px 26px 20px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: var(--shadow);
+            position: relative;
+            transition: background-color 0.35s ease, border-color 0.35s ease;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .title-wrap {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .eyebrow {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--gold-1);
+            letter-spacing: 0.02em;
+        }
+
+        .title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        /* ---- Animated day/night switch ---- */
+        .theme-switch {
+            position: relative;
+            width: 56px;
+            height: 30px;
+            border-radius: 999px;
+            border: 1px solid var(--border-color);
+            background: linear-gradient(90deg, #9fd3ff, #eaf6ff);
+            cursor: pointer;
+            padding: 0;
+            flex-shrink: 0;
+            transition: background 0.4s ease, border-color 0.35s ease;
+            overflow: hidden;
+        }
+
+        [data-theme="dark"] .theme-switch {
+            background: linear-gradient(90deg, #131a30, #1b2340);
+        }
+
+        .theme-switch .track-icon {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 13px;
+            height: 13px;
+            opacity: 0.9;
+            transition: opacity 0.3s ease;
+        }
+
+        .theme-switch .sun-mark { left: 7px; color: #f5a623; }
+        .theme-switch .moon-mark { right: 7px; color: #cbd5ff; opacity: 0.35; }
+        [data-theme="dark"] .theme-switch .sun-mark { opacity: 0.35; }
+        [data-theme="dark"] .theme-switch .moon-mark { opacity: 1; }
+
+        .theme-switch .thumb {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #ffffff;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transform: translateX(0);
+            transition: transform 0.35s cubic-bezier(0.65, 0.05, 0.36, 1), background 0.35s ease;
+        }
+
+        [data-theme="dark"] .theme-switch .thumb {
+            transform: translateX(26px);
+            background: #1b2340;
+        }
+
+        .theme-switch .thumb svg {
+            width: 14px;
+            height: 14px;
+            stroke: #f5a623;
+            fill: none;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            transition: stroke 0.35s ease, opacity 0.2s ease;
+        }
+
+        [data-theme="dark"] .theme-switch .thumb svg {
+            stroke: #cbd5ff;
+        }
+
+        .theme-switch .thumb .moon-icon { display: none; }
+        [data-theme="dark"] .theme-switch .thumb .sun-icon { display: none; }
+        [data-theme="dark"] .theme-switch .thumb .moon-icon { display: block; }
+
+        /* ---- Basis toggle ---- */
+        .toggle-container {
+            display: flex;
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 4px;
+            margin-bottom: 18px;
+            gap: 4px;
+        }
+
+        .toggle-btn {
+            flex: 1;
+            background: none;
+            border: none;
+            padding: 9px 6px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-radius: 7px;
+            transition: color 0.2s ease, background 0.2s ease;
+        }
+
+        .toggle-btn.active {
+            background: linear-gradient(120deg, var(--accent-1), var(--accent-2));
+            color: #ffffff;
+        }
+
+        .input-group {
+            margin-bottom: 14px;
+        }
+
+        .input-group-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .input-group-header label {
+            margin-bottom: 0;
+        }
+
+        .position-badge {
+            display: none;
+            font-size: 0.68rem;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 999px;
+            letter-spacing: 0.01em;
+        }
+
+        .position-badge.long {
+            display: inline-block;
+            color: var(--long-color);
+            background: var(--long-bg);
+        }
+
+        .position-badge.short {
+            display: inline-block;
+            color: var(--short-color);
+            background: var(--short-bg);
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 11px 12px;
+            font-size: 0.98rem;
+            font-weight: 500;
+            border: 1px solid var(--input-border);
+            border-radius: 9px;
+            background-color: var(--input-bg);
+            color: var(--text-color);
+            outline: none;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .input-field:focus {
+            border-color: var(--accent-1);
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-1) 18%, transparent);
+        }
+
+        .input-field.input-error {
+            border-color: var(--error-color);
+        }
+
+        .input-field.input-error:focus {
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--error-color) 18%, transparent);
+        }
+
+        /* Hide built-in arrow indicators for numbers spinboxes */
+        .input-field::-webkit-outer-spin-button,
+        .input-field::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        .input-field[type=number] {
+            -moz-appearance: textfield;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .error-text {
+            display: none;
+            font-size: 0.76rem;
+            font-weight: 600;
+            color: var(--error-color);
+            background: var(--error-bg);
+            border-radius: 8px;
+            padding: 8px 10px;
+            margin-bottom: 14px;
+        }
+
+        .result-box {
+            margin-top: 18px;
+            background: var(--result-bg);
+            border: 1px solid var(--result-border);
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .result-box::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(120deg, color-mix(in srgb, var(--gold-1) 12%, transparent), transparent 60%);
+            pointer-events: none;
+        }
+
+        .result-label {
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+            position: relative;
+        }
+
+        .result-value {
+            font-size: 2rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            background: linear-gradient(120deg, var(--gold-1), var(--gold-2));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            position: relative;
+        }
+
+        .copy-btn {
+            position: relative;
+            margin-top: 10px;
+            border: 1px solid var(--result-border);
+            background: var(--card-bg);
+            color: var(--text-muted);
+            font-size: 0.72rem;
+            font-weight: 600;
+            padding: 5px 12px;
+            border-radius: 999px;
+            cursor: pointer;
+            transition: color 0.2s ease, border-color 0.2s ease;
+        }
+
+        .copy-btn:hover {
+            color: var(--gold-1);
+            border-color: var(--gold-1);
+        }
+
+        .copy-btn.copied {
+            color: var(--long-color);
+            border-color: var(--long-color);
+        }
+
+        .footer-row {
+            margin-top: 14px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .reset-link {
+            background: none;
+            border: none;
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            text-decoration: underline;
+            text-underline-offset: 2px;
+        }
+
+        .reset-link:hover {
+            color: var(--accent-1);
+        }
+
+        .footer-credit {
+            text-align: center;
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            opacity: 0.7;
+            user-select: none;
+        }
+
+        .footer-dot {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="calculator-card">
+        <div class="header">
+            <div class="title-wrap">
+                <span class="eyebrow">Risk Management</span>
+                <h1 class="title">Position Size</h1>
+            </div>
+            <button class="theme-switch" id="themeToggle" aria-label="Toggle theme">
+                <svg class="track-icon sun-mark" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="5"></circle></svg>
+                <svg class="track-icon moon-mark" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                <span class="thumb">
+                    <svg class="sun-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                    <svg class="moon-icon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                </span>
+            </button>
+        </div>
+
+        <div class="toggle-container">
+            <button class="toggle-btn active" id="basisUsdBtn">USD ($)</button>
+            <button class="toggle-btn" id="basisPctBtn">Percentage (%)</button>
+        </div>
+
+        <!-- Percentage Basis Inputs Container -->
+        <div id="pctInputs" class="hidden">
+            <div class="input-group">
+                <label for="accountBalance">Account Balance ($)</label>
+                <input type="number" id="accountBalance" class="input-field" placeholder="e.g. 6000" value="6000" step="any">
+            </div>
+            <div class="input-group">
+                <label for="riskPercent">Risk Percentage (%)</label>
+                <input type="number" id="riskPercent" class="input-field" placeholder="e.g. 0.5" value="0.5" step="any">
+            </div>
+        </div>
+
+        <!-- Direct USD Input Container -->
+        <div id="usdInputs">
+            <div class="input-group">
+                <label for="directRisk">Total Risk ($)</label>
+                <input type="number" id="directRisk" class="input-field" placeholder="e.g. 30" value="30" step="any">
+            </div>
+        </div>
+
+        <!-- Main Price Inputs -->
+        <div class="input-group">
+            <label for="entryPrice">Entry Price</label>
+            <input type="number" id="entryPrice" class="input-field" placeholder="0.00" step="any">
+        </div>
+
+        <div class="input-group">
+            <div class="input-group-header">
+                <label for="slPrice">Stop Loss (SL) Price</label>
+                <span class="position-badge" id="positionBadge"></span>
+            </div>
+            <input type="number" id="slPrice" class="input-field" placeholder="0.00" step="any">
+        </div>
+
+        <div class="error-text" id="errorText"></div>
+
+        <div class="result-box">
+            <div class="result-label">Lot Size (Shares)</div>
+            <div class="result-value" id="sharesResult">0</div>
+            <button class="copy-btn" id="copyBtn">Copy</button>
+        </div>
+
+        <div class="footer-row">
+            <span class="footer-credit">Created by Nihal</span>
+            <span class="footer-dot">&middot;</span>
+            <button class="reset-link" id="resetBtn">Reset</button>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const themeToggle = document.getElementById('themeToggle');
+        const basisUsdBtn = document.getElementById('basisUsdBtn');
+        const basisPctBtn = document.getElementById('basisPctBtn');
+        const usdInputs = document.getElementById('usdInputs');
+        const pctInputs = document.getElementById('pctInputs');
+
+        const directRisk = document.getElementById('directRisk');
+        const accountBalance = document.getElementById('accountBalance');
+        const riskPercent = document.getElementById('riskPercent');
+        const entryPrice = document.getElementById('entryPrice');
+        const slPrice = document.getElementById('slPrice');
+        const sharesResult = document.getElementById('sharesResult');
+        const errorText = document.getElementById('errorText');
+        const positionBadge = document.getElementById('positionBadge');
+        const copyBtn = document.getElementById('copyBtn');
+        const resetBtn = document.getElementById('resetBtn');
+
+        const STORAGE_KEY = 'positionCalcPrefs';
+        let currentBasis = 'usd';
+
+        // ---- Remember last-used values (account balance, risk %, total risk, theme) ----
+        function savePrefs() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify({
+                    basis: currentBasis,
+                    accountBalance: accountBalance.value,
+                    riskPercent: riskPercent.value,
+                    directRisk: directRisk.value,
+                    theme: document.body.getAttribute('data-theme') === 'dark' ? 'dark' : 'light'
+                }));
+            } catch (e) { /* localStorage unavailable, ignore silently */ }
+        }
+
+        function loadPrefs() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (!raw) return;
+                const prefs = JSON.parse(raw);
+
+                if (prefs.theme === 'dark') {
+                    document.body.setAttribute('data-theme', 'dark');
+                }
+                if (prefs.accountBalance !== undefined) accountBalance.value = prefs.accountBalance;
+                if (prefs.riskPercent !== undefined) riskPercent.value = prefs.riskPercent;
+                if (prefs.directRisk !== undefined) directRisk.value = prefs.directRisk;
+
+                if (prefs.basis === 'pct') {
+                    currentBasis = 'pct';
+                    basisPctBtn.classList.add('active');
+                    basisUsdBtn.classList.remove('active');
+                    pctInputs.classList.remove('hidden');
+                    usdInputs.classList.add('hidden');
+                }
+            } catch (e) { /* corrupted or unavailable storage, ignore */ }
+        }
+
+        // ---- Theme Toggle Handler ----
+        themeToggle.addEventListener('click', () => {
+            const currentTheme = document.body.getAttribute('data-theme');
+            if (currentTheme === 'dark') {
+                document.body.removeAttribute('data-theme');
+            } else {
+                document.body.setAttribute('data-theme', 'dark');
+            }
+            savePrefs();
+        });
+
+        // ---- Basis Selection Switchers ----
+        basisUsdBtn.addEventListener('click', () => {
+            currentBasis = 'usd';
+            basisUsdBtn.classList.add('active');
+            basisPctBtn.classList.remove('active');
+            usdInputs.classList.remove('hidden');
+            pctInputs.classList.add('hidden');
+            calculateShares();
+            savePrefs();
+        });
+
+        basisPctBtn.addEventListener('click', () => {
+            currentBasis = 'pct';
+            basisPctBtn.classList.add('active');
+            basisUsdBtn.classList.remove('active');
+            pctInputs.classList.remove('hidden');
+            usdInputs.classList.add('hidden');
+            calculateShares();
+            savePrefs();
+        });
+
+        // ---- Validation: negative prices, and Entry === SL ----
+        function validateInputs() {
+            let message = '';
+            entryPrice.classList.remove('input-error');
+            slPrice.classList.remove('input-error');
+
+            const entryRaw = entryPrice.value;
+            const slRaw = slPrice.value;
+            const entry = parseFloat(entryRaw);
+            const sl = parseFloat(slRaw);
+
+            if (entryRaw !== '' && entry < 0) {
+                message = 'Price can\'t be negative.';
+                entryPrice.classList.add('input-error');
+            } else if (slRaw !== '' && sl < 0) {
+                message = 'Price can\'t be negative.';
+                slPrice.classList.add('input-error');
+            } else if (entryRaw !== '' && slRaw !== '' && entry === sl) {
+                message = 'Entry and SL price can\'t be the same.';
+                entryPrice.classList.add('input-error');
+                slPrice.classList.add('input-error');
+            }
+
+            errorText.textContent = message;
+            errorText.style.display = message ? 'block' : 'none';
+            return message === '';
+        }
+
+        // ---- Long / Short auto-detect badge ----
+        function updatePositionBadge() {
+            const entry = parseFloat(entryPrice.value);
+            const sl = parseFloat(slPrice.value);
+
+            if (!entry || !sl || entry === sl || entry < 0 || sl < 0) {
+                positionBadge.className = 'position-badge';
+                positionBadge.textContent = '';
+                return;
+            }
+
+            if (sl < entry) {
+                positionBadge.textContent = 'Long';
+                positionBadge.className = 'position-badge long';
+            } else {
+                positionBadge.textContent = 'Short';
+                positionBadge.className = 'position-badge short';
+            }
+        }
+
+        // ---- Dynamic Calculation Logic ----
+        function calculateShares() {
+            const isValid = validateInputs();
+            updatePositionBadge();
+
+            const entry = parseFloat(entryPrice.value);
+            const sl = parseFloat(slPrice.value);
+
+            if (!isValid || !entry || !sl || entry === sl) {
+                sharesResult.textContent = '0';
+                return;
+            }
+
+            let allowedRiskAmount = 0;
+
+            if (currentBasis === 'usd') {
+                allowedRiskAmount = parseFloat(directRisk.value) || 0;
+            } else {
+                const balance = parseFloat(accountBalance.value) || 0;
+                const percent = parseFloat(riskPercent.value) || 0;
+                allowedRiskAmount = (balance * percent) / 100;
+            }
+
+            if (allowedRiskAmount <= 0) {
+                sharesResult.textContent = '0';
+                return;
+            }
+
+            const riskPerShare = Math.abs(entry - sl);
+            const shares = allowedRiskAmount / riskPerShare;
+
+            if (isFinite(shares) && shares > 0) {
+                // Rounding to 2 decimal places to make fractional tracking cleaner if applicable
+                sharesResult.textContent = Number(shares.toFixed(2));
+            } else {
+                sharesResult.textContent = '0';
+            }
+        }
+
+        // ---- Add Input Event Listeners for Live Math Output + saving prefs ----
+        [directRisk, accountBalance, riskPercent, entryPrice, slPrice].forEach(input => {
+            input.addEventListener('input', () => {
+                calculateShares();
+                savePrefs();
+            });
+        });
+
+        // ---- Copy result to clipboard ----
+        copyBtn.addEventListener('click', () => {
+            const value = sharesResult.textContent;
+            if (!value || value === '0') return;
+
+            const showCopied = () => {
+                copyBtn.textContent = 'Copied';
+                copyBtn.classList.add('copied');
+                setTimeout(() => {
+                    copyBtn.textContent = 'Copy';
+                    copyBtn.classList.remove('copied');
+                }, 1500);
+            };
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(value).then(showCopied).catch(() => {});
+            } else {
+                // Fallback for older browsers
+                const temp = document.createElement('textarea');
+                temp.value = value;
+                document.body.appendChild(temp);
+                temp.select();
+                try { document.execCommand('copy'); showCopied(); } catch (e) {}
+                document.body.removeChild(temp);
+            }
+        });
+
+        // ---- Reset to defaults ----
+        resetBtn.addEventListener('click', () => {
+            currentBasis = 'usd';
+            basisUsdBtn.classList.add('active');
+            basisPctBtn.classList.remove('active');
+            usdInputs.classList.remove('hidden');
+            pctInputs.classList.add('hidden');
+
+            directRisk.value = 30;
+            accountBalance.value = 6000;
+            riskPercent.value = 0.5;
+            entryPrice.value = '';
+            slPrice.value = '';
+
+            entryPrice.classList.remove('input-error');
+            slPrice.classList.remove('input-error');
+            errorText.style.display = 'none';
+            positionBadge.className = 'position-badge';
+            positionBadge.textContent = '';
+
+            sharesResult.textContent = '0';
+            savePrefs();
+        });
+
+        // ---- Init: restore last-used values, then calculate ----
+        loadPrefs();
+        calculateShares();
+    </script>
+</body>
+</html>
